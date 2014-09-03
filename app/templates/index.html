@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" >
+
+    <style>
+        .stripe {
+    background: none repeat scroll 0 0 #edf5ff;
+}
+.red-text {
+    color: #ff0000;
+}
+.green-text {
+    color: #00ff00;
+}
+.gray-text {
+    color: #999999;
+}
+.blue-text {
+    color: #0000ff;
+}
+.orange-text {
+    color: #ff8800;
+}
+    </style>
+
+    <script src="http://code.jquery.com/jquery-1.10.2.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script src="{{ url_for('static', filename='js/moment.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap-sortable.js') }}"></script>
+
+
+
+
+    <script>
+
+
+function refreshNodes(){
+    $('.nodes').each(function( index ) {
+        var nodeRow = $(this);
+        var node_ip = nodeRow.data('node-ip');
+
+        $.get('/proxy/' + node_ip, function (response) {
+
+            if(response=='TIMEOUT_ERROR'){
+                $('.status', nodeRow).html('<font color="#ff0000">timed out</font>');
+            }else {
+                $('table', response).each(function (index) {
+                    var table = $(this);
+                    var mType = $('tr:first th:first', table).text().trim();
+
+                    if(mType.length<1) mType = $('tr:first td:first', table).text().trim();
+
+                    console.log(mType);
+
+
+                    var systemStatus = '';
+                    var systemLoad = '';
+                    var systemCPU = '';
+                    var systemMemory = '';
+
+                    if(mType == 'System'){
+                        $('tr', table).each(function( index ) {
+                            var tr = $(this);
+                            systemStatus = $('td:eq(1)', tr).html();
+                            systemLoad = $('td:eq(2)', tr).text();
+                            systemCPU = $('td:eq(3)', tr).text();
+                            systemMemory = $('td:eq(4)', tr).text();
+                        });
+
+                        $('.status', nodeRow).html(systemStatus);
+                        $('.load', nodeRow).html(systemLoad);
+                        $('.cpu', nodeRow).html(systemCPU);
+                        $('.memory', nodeRow).html(systemMemory);
+                    }
+
+                    if(mType == 'File'){
+                        var fileControls = [];
+                        var fileControlsHtml = [];
+
+                        $('tr', table).each(function( index ) {
+                            var tr = $(this);
+
+                            fileControls.push({
+                                "file": $('td:eq(0)', tr).text(),
+                                "status": $('td:eq(1)', tr).html(),
+                                "size": $('td:eq(2)', tr).html(),
+                                "permission": $('td:eq(3)', tr).html(),
+                                "uid": $('td:eq(4)', tr).html(),
+                                "gid": $('td:eq(5)', tr).html()
+                            });
+
+
+                        });
+
+                        for(i=1; i<fileControls.length;i++){
+                            var tmpFile = fileControls[i]['file'];
+                            var tmpStatus = $(fileControls[i]['status']);
+                            var tmpStatusText = tmpStatus.text();
+                            tmpStatus.html(tmpFile);
+                            tmpStatus.attr('title', tmpStatusText);
+
+                            var tmpHtml = $('<div>').append($(tmpStatus).clone()).html();
+
+                            fileControlsHtml.push(tmpHtml);
+                        }
+
+                        $('.files', nodeRow).html(fileControlsHtml.join(','));
+
+                    }
+
+                    if(mType == 'Directory'){
+                        var fileControls = [];
+                        var fileControlsHtml = [];
+
+                        $('tr', table).each(function( index ) {
+                            var tr = $(this);
+
+                            fileControls.push({
+                                "file": $('td:eq(0)', tr).text(),
+                                "status": $('td:eq(1)', tr).html(),
+                                "permission": $('td:eq(2)', tr).html(),
+                                "uid": $('td:eq(3)', tr).html(),
+                                "gid": $('td:eq(4)', tr).html()
+                            });
+
+
+                        });
+
+                        for(i=1; i<fileControls.length;i++){
+                            var tmpFile = fileControls[i]['file'];
+                            var tmpStatus = $(fileControls[i]['status']);
+                            var tmpStatusText = tmpStatus.text();
+                            tmpStatus.html(tmpFile);
+                            tmpStatus.attr('title', tmpStatusText);
+
+                            var tmpHtml = $('<div>').append($(tmpStatus).clone()).html();
+
+                            fileControlsHtml.push(tmpHtml);
+                        }
+
+                        $('.directories', nodeRow).html(fileControlsHtml.join(','));
+
+
+                    }
+
+                    if(mType == 'Process'){
+                        var tmpontrols = [];
+                        var tmpontrolsHtml = [];
+
+                        $('tr', table).each(function( index ) {
+                            var tr = $(this);
+
+                            tmpontrols.push({
+                                "process": $('td:eq(0)', tr).text(),
+                                "status": $('td:eq(1)', tr).html(),
+                                "uptime": $('td:eq(2)', tr).text(),
+                                "cpu_total": $('td:eq(3)', tr).text(),
+                                "memory_total": $('td:eq(4)', tr).text()
+                            });
+                        });
+
+                        for(i=1; i<tmpontrols.length;i++){
+                            var tmpFile = tmpontrols[i]['process'];
+                            var tmpStatus = $(tmpontrols[i]['status']);
+                            var tmpStatusText = tmpStatus.text();
+
+                            tmpStatusText += ' Uptime: '+tmpontrols[i]['uptime'];
+
+                            tmpStatus.html(tmpFile);
+                            tmpStatus.attr('title', tmpStatusText);
+
+                            var tmpHtml = $('<div>').append($(tmpStatus).clone()).html();
+
+                            tmpontrolsHtml.push(tmpHtml);
+                        }
+
+                        $('.processes', nodeRow).html(tmpontrolsHtml.join(','));
+
+
+                    }
+
+                    if(mType == 'Host'){
+                        var tmpontrols = [];
+                        var tmpontrolsHtml = [];
+
+                        $('tr', table).each(function( index ) {
+                            var tr = $(this);
+
+                            tmpontrols.push({
+                                "host": $('td:eq(0)', tr).text(),
+                                "status": $('td:eq(1)', tr).html(),
+                                "protocol": $('td:eq(2)', tr).text()
+                            });
+                        });
+
+                        for(i=1; i<tmpontrols.length;i++){
+                            var tmpFile = tmpontrols[i]['host'];
+                            var tmpStatus = $(tmpontrols[i]['status']);
+                            var tmpStatusText = tmpStatus.text();
+
+                            tmpStatusText += ' Protocols: '+tmpontrols[i]['protocol'];
+
+                            tmpStatus.html(tmpFile);
+                            tmpStatus.attr('title', tmpStatusText);
+
+                            var tmpHtml = $('<div>').append($(tmpStatus).clone()).html();
+
+                            tmpontrolsHtml.push(tmpHtml);
+                        }
+
+                        $('.hosts', nodeRow).html(tmpontrolsHtml.join(','));
+
+
+                    }
+
+
+
+                });
+            };
+        });
+
+
+    });
+    setTimeout('refreshNodes()', 10000);
+}
+
+$(function() {
+    setTimeout('refreshNodes()', 3000);
+});
+
+    </script>
+
+
+</head>
+<body>
+
+
+
+
+<div class="container">
+
+    <!-- add
+    <button class="btn btn-primary" data-toggle="modal" data-target="#addGroupModal">Add Group</button>
+    <button class="btn btn-primary" data-toggle="modal" data-target="#addNodeModal">Add Node</button>
+    -->
+
+    <div class="panel panel-default">
+      <!-- Default panel contents -->
+      <div class="panel-heading">
+          {% for group in groups %}
+          <a href="/index/{{group.name}}">{{group.name}}</a>
+          {% endfor %}
+      </div>
+      <div class="panel-body">
+        <p>{{message}}</p>
+      </div>
+
+        <table id="header-row" class="table table-bordered table-striped sortable">
+            <thead>
+                <tr>
+                    <th>Node</th>
+                    <th>Status</th>
+                    <th>Load</th>
+                    <th>CPU</th>
+                    <th>Memory</th>
+                    <th>Processes</th>
+                    <th>Files</th>
+                    <th>Directories</th>
+                    <th>Hosts</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for node in nodes %}
+                <tr class="nodes" data-node-ip="{{node.ip}}">
+                    <td>{{node.name}} ({{node.ip}})</td>
+                    <td class="status"></td>
+                    <td class="load"></td>
+                    <td class="cpu"></td>
+                    <td class="memory"></td>
+                    <td class="processes"></td>
+                    <td class="files"></td>
+                    <td class="directories"></td>
+                    <td class="hosts"></td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+
+</div>
+
+
+<div class="modal fade" id="addGroupModal" tabindex="-1" role="dialog" aria-labelledby="addGroupModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+        <h4 class="modal-title" id="addGroupModalLabel">Add Group</h4>
+      </div>
+      <div class="modal-body">
+        <form id="id_addGroupForm" name="addGroupForm" class="form-horizontal" role="form" method="post">
+          <div class="form-group">
+            <label for="groupName" class="col-sm-2 control-label">Group Name</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="groupName" name="groupName" placeholder="Name">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="$('#id_addGroupForm').submit()">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addNodeModal" tabindex="-1" role="dialog" aria-labelledby="addNodeModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+        <h4 class="modal-title" id="addNodeModalLabel">Add Group</h4>
+      </div>
+      <div class="modal-body">
+        <form id="id_addNodeForm" name="addNodeForm" class="form-horizontal" role="form" method="post">
+          <div class="form-group">
+            <label for="node_name" class="col-sm-2 control-label">Node Name</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="node_name" name="node_name" placeholder="Node Name">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="node_ip" class="col-sm-2 control-label">Node Ip</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="node_ip" name="node_ip" placeholder="Node Ip">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="node_port" class="col-sm-2 control-label">Node Port</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="node_port" name="node_port" placeholder="Node Port">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="$('#id_addNodeForm').submit()">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>
